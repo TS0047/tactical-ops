@@ -5,7 +5,6 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/utils/date_utils.dart';
 import '../../../data/models/debrief.dart';
-import '../../../data/models/task.dart';
 import '../../../presentation/providers/debrief_providers.dart';
 import '../../../presentation/providers/task_providers.dart';
 import '../../../routing/route_names.dart';
@@ -114,20 +113,18 @@ class _DebriefForm extends ConsumerWidget {
             onDrop: (id) => notifier.dropTaskIntoSection(id, 'completed'),
           ),
           const SizedBox(height: 16),
-          _ChipSection(
+          _TextAreaSection(
             label: AppStrings.victories,
-            items: state.wins,
-            onAdd: (v) => notifier.addToSection('wins', v),
-            onRemove: (i) => notifier.removeFromSection('wins', i),
-            onDrop: (id) => notifier.dropTaskIntoSection(id, 'wins'),
+            value: state.winsText,
+            hintText: 'What went well today?\nOne victory per line...',
+            onChanged: notifier.setWins,
           ),
           const SizedBox(height: 16),
-          _ChipSection(
+          _TextAreaSection(
             label: AppStrings.obstaclesEncountered,
-            items: state.blockers,
-            onAdd: (v) => notifier.addToSection('blockers', v),
-            onRemove: (i) => notifier.removeFromSection('blockers', i),
-            onDrop: (id) => notifier.dropTaskIntoSection(id, 'blockers'),
+            value: state.blockersText,
+            hintText: 'What blocked you?\nOne obstacle per line...',
+            onChanged: notifier.setBlockers,
           ),
           const SizedBox(height: 16),
           _ChipSection(
@@ -341,6 +338,48 @@ class _ChipSectionState extends State<_ChipSection> {
           child: _content(),
         );
       },
+    );
+  }
+}
+
+// ── Free-text section (victories / obstacles) ─────────────────────────────
+
+class _TextAreaSection extends StatelessWidget {
+  const _TextAreaSection({
+    required this.label,
+    required this.value,
+    required this.hintText,
+    required this.onChanged,
+  });
+
+  final String label;
+  final String value;
+  final String hintText;
+  final void Function(String) onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: Theme.of(context).textTheme.labelSmall),
+        const SizedBox(height: 8),
+        TextField(
+          minLines: 3,
+          maxLines: 6,
+          onChanged: onChanged,
+          style: Theme.of(context).textTheme.bodyLarge,
+          decoration: InputDecoration(
+            hintText: hintText,
+            hintStyle: const TextStyle(
+              color: AppColors.textMuted,
+              fontSize: 13,
+              height: 1.5,
+            ),
+            alignLabelWithHint: true,
+          ),
+        ),
+      ],
     );
   }
 }

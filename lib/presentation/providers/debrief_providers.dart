@@ -35,8 +35,8 @@ final briefedTaskIdsProvider = Provider<List<String>>((ref) {
 class DebriefState {
   const DebriefState({
     this.completed = const [],
-    this.wins = const [],
-    this.blockers = const [],
+    this.winsText = '',
+    this.blockersText = '',
     this.carryOvers = const [],
     this.moodRating = RagStatus.green,
     this.freeNotes = '',
@@ -46,8 +46,8 @@ class DebriefState {
   });
 
   final List<String> completed;
-  final List<String> wins;
-  final List<String> blockers;
+  final String winsText;     // free-text victories field
+  final String blockersText; // free-text obstacles field
   final List<String> carryOvers;
   final RagStatus moodRating;
   final String freeNotes;
@@ -59,8 +59,8 @@ class DebriefState {
 
   DebriefState copyWith({
     List<String>? completed,
-    List<String>? wins,
-    List<String>? blockers,
+    String? winsText,
+    String? blockersText,
     List<String>? carryOvers,
     RagStatus? moodRating,
     String? freeNotes,
@@ -70,8 +70,8 @@ class DebriefState {
   }) =>
       DebriefState(
         completed: completed ?? this.completed,
-        wins: wins ?? this.wins,
-        blockers: blockers ?? this.blockers,
+        winsText: winsText ?? this.winsText,
+        blockersText: blockersText ?? this.blockersText,
         carryOvers: carryOvers ?? this.carryOvers,
         moodRating: moodRating ?? this.moodRating,
         freeNotes: freeNotes ?? this.freeNotes,
@@ -97,10 +97,6 @@ class DebriefNotifier extends Notifier<DebriefState> {
     switch (section) {
       case 'completed':
         state = state.copyWith(completed: [...state.completed, value.trim()]);
-      case 'wins':
-        state = state.copyWith(wins: [...state.wins, value.trim()]);
-      case 'blockers':
-        state = state.copyWith(blockers: [...state.blockers, value.trim()]);
       case 'carryOvers':
         state =
             state.copyWith(carryOvers: [...state.carryOvers, value.trim()]);
@@ -112,25 +108,20 @@ class DebriefNotifier extends Notifier<DebriefState> {
       case 'completed':
         final l = List<String>.from(state.completed)..removeAt(index);
         state = state.copyWith(completed: l);
-      case 'wins':
-        final l = List<String>.from(state.wins)..removeAt(index);
-        state = state.copyWith(wins: l);
-      case 'blockers':
-        final l = List<String>.from(state.blockers)..removeAt(index);
-        state = state.copyWith(blockers: l);
       case 'carryOvers':
         final l = List<String>.from(state.carryOvers)..removeAt(index);
         state = state.copyWith(carryOvers: l);
     }
   }
 
+  void setWins(String v) => state = state.copyWith(winsText: v);
+  void setBlockers(String v) => state = state.copyWith(blockersText: v);
   void setMood(RagStatus status) => state = state.copyWith(moodRating: status);
-
   void setFreeNotes(String v) => state = state.copyWith(freeNotes: v);
 
   /// Called when a briefed-objective chip is dragged into a debrief section.
-  /// Resolves the task ID to a title, adds it to the section, marks it
-  /// assigned, and (for 'completed') marks the Task as complete in Firestore.
+  /// Resolves the task ID to a title, adds it to the section (completed /
+  /// carryOvers), marks it assigned, and marks the Task complete in Firestore.
   Future<void> dropTaskIntoSection(String taskId, String section) async {
     final tasks = ref.read(taskListProvider).value ?? [];
     final task = tasks.where((t) => t.id == taskId).firstOrNull;
@@ -159,13 +150,20 @@ class DebriefNotifier extends Notifier<DebriefState> {
     state = state.copyWith(isSubmitting: true, error: null);
     try {
       final now = DateTime.now();
+      // Split free-text fields into bullet lines, filtering blank lines
+      List<String> _lines(String text) => text
+          .split('\n')
+          .map((l) => l.trim())
+          .where((l) => l.isNotEmpty)
+          .toList();
+
       final debrief = Debrief(
         id: toDateKey(todayNormalized()),
         userId: user.uid,
         date: todayNormalized(),
         completed: state.completed,
-        wins: state.wins,
-        blockers: state.blockers,
+        wins: _lines(state.winsText),
+        blockers: _lines(state.blockersText),
         carryOvers: state.carryOvers,
         moodRating: state.moodRating,
         freeNotes: state.freeNotes.isEmpty ? null : state.freeNotes,
