@@ -97,17 +97,17 @@ class TaskDetailScreen extends ConsumerWidget {
       BuildContext context, WidgetRef ref, Task task) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         backgroundColor: AppColors.surface,
         title: const Text('DELETE OBJECTIVE',
             style: TextStyle(fontFamily: 'ShareTechMono')),
         content: const Text('This action cannot be undone.'),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context, false),
+              onPressed: () => Navigator.pop(dialogContext, false),
               child: const Text('CANCEL')),
           TextButton(
-              onPressed: () => Navigator.pop(context, true),
+              onPressed: () => Navigator.pop(dialogContext, true),
               child: const Text('DELETE',
                   style: TextStyle(color: AppColors.redLight))),
         ],
@@ -115,9 +115,10 @@ class TaskDetailScreen extends ConsumerWidget {
     );
     if (confirmed == true) {
       final uid = ref.read(authStateProvider).value?.uid;
+      final repo = ref.read(taskRepositoryProvider);
       if (uid == null || !context.mounted) return;
       context.pop(); // navigate back before Firestore stream fires
-      await ref.read(taskRepositoryProvider).deleteTask(uid, task.id);
+      await repo.deleteTask(uid, task.id); // ref may be deactivated after pop
     }
   }
 }
