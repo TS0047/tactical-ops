@@ -115,10 +115,9 @@ class TaskDetailScreen extends ConsumerWidget {
     );
     if (confirmed == true) {
       final uid = ref.read(authStateProvider).value?.uid;
-      if (uid != null) {
-        await ref.read(taskRepositoryProvider).deleteTask(uid, task.id);
-        if (context.mounted) context.pop();
-      }
+      if (uid == null || !context.mounted) return;
+      context.pop(); // navigate back before Firestore stream fires
+      await ref.read(taskRepositoryProvider).deleteTask(uid, task.id);
     }
   }
 }
